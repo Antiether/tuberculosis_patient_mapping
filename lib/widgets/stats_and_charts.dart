@@ -42,9 +42,9 @@ class StatsAndCharts extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF064E3B).withOpacity(0.4),
+            color: const Color(0xFF064E3B).withAlpha(100),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.6)),
+            border: Border.all(color: const Color(0xFF10B981).withAlpha(150)),
           ),
           child: Row(
             children: [
