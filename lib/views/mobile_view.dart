@@ -90,12 +90,12 @@ class _MobileViewState extends State<MobileView> {
         ],
       ),
       body: SafeArea(
+        top: false,
         child: IndexedStack(
           index: _currentTabIndex,
           children: [
-            // TAB 0: Peta GIS Spasial Interaktif
-            Padding(
-              padding: const EdgeInsets.all(8),
+            // TAB 0: Peta GIS Spasial Interaktif Full Screen Tanpa Padding
+            SizedBox.expand(
               child: InteractiveGisMap(
                 kecamatanList: widget.kecamatanList,
                 faskesList: widget.faskesList,
@@ -217,7 +217,7 @@ class _MobileViewState extends State<MobileView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _statusColor(item.status).withOpacity(0.18),
+                        color: _statusColor(item.status).withAlpha(46),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: _statusColor(item.status), width: 0.8),
                       ),

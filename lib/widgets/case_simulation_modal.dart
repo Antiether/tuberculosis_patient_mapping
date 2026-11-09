@@ -77,7 +77,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Data Kasus ${newCase.kodeKasus} Disimpan! Peta diperbarui secara Real-Time (${latensi} ms)',
+                'Data Kasus ${newCase.kodeKasus} Disimpan! Peta diperbarui secara Real-Time ($latensi ms)',
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
@@ -141,7 +141,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
                 const Text('Pilih Kecamatan Domisili:', style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: _selectedKecamatanId,
+                  initialValue: _selectedKecamatanId,
                   dropdownColor: const Color(0xFF1E293B),
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: _inputDecoration(),
@@ -166,7 +166,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
                 const Text('Kelurahan:', style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: _selectedKelurahan,
+                  initialValue: _selectedKelurahan,
                   dropdownColor: const Color(0xFF1E293B),
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: _inputDecoration(),
@@ -183,7 +183,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
                 const Text('Faskes Penemu / Rujukan:', style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: _selectedFaskesId,
+                  initialValue: _selectedFaskesId,
                   dropdownColor: const Color(0xFF1E293B),
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: _inputDecoration(),
@@ -226,7 +226,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
                           const Text('Jenis Kelamin:', style: TextStyle(color: Colors.white70, fontSize: 11)),
                           const SizedBox(height: 4),
                           DropdownButtonFormField<String>(
-                            value: _jenisKelamin,
+                            initialValue: _jenisKelamin,
                             dropdownColor: const Color(0xFF1E293B),
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                             decoration: _inputDecoration(),
@@ -249,7 +249,7 @@ class _CaseSimulationModalState extends State<CaseSimulationModal> {
                 const Text('Status Pengobatan TB:', style: TextStyle(color: Colors.white70, fontSize: 11)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<CaseStatus>(
-                  value: _selectedStatus,
+                  initialValue: _selectedStatus,
                   dropdownColor: const Color(0xFF1E293B),
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: _inputDecoration(),
