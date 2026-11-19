@@ -10,6 +10,7 @@ class AdminView extends StatefulWidget {
   final List<KecamatanData> kecamatanList;
   final List<FaskesData> faskesList;
   final List<CaseRecord> caseRecords;
+  final List<PatientProfile> patientList;
   final RealTimeUpdateLog? latestLog;
   final KecamatanData? selectedKecamatan;
   final Function(KecamatanData?) onSelectKecamatan;
@@ -23,6 +24,7 @@ class AdminView extends StatefulWidget {
     required this.kecamatanList,
     required this.faskesList,
     required this.caseRecords,
+    required this.patientList,
     required this.latestLog,
     required this.selectedKecamatan,
     required this.onSelectKecamatan,
@@ -35,18 +37,21 @@ class AdminView extends StatefulWidget {
   State<AdminView> createState() => _AdminViewState();
 }
 
-class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMixin {
+class _AdminViewState extends State<AdminView> with TickerProviderStateMixin {
   late TabController _tabController;
+  late TabController _mobileTabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _mobileTabController = TabController(length: 4, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _mobileTabController.dispose();
     super.dispose();
   }
 
@@ -105,7 +110,9 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                           Container(
                             decoration: const BoxDecoration(
                               color: Color(0xFF1E293B),
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
                             ),
                             child: TabBar(
                               controller: _tabController,
@@ -113,11 +120,23 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                               indicatorWeight: 3,
                               labelColor: const Color(0xFF38BDF8),
                               unselectedLabelColor: Colors.grey.shade400,
-                              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              labelStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                               tabs: const [
-                                Tab(icon: Icon(Icons.analytics, size: 16), text: 'Statistik & Tren'),
-                                Tab(icon: Icon(Icons.table_chart, size: 16), text: 'Data Kasus'),
-                                Tab(icon: Icon(Icons.local_hospital, size: 16), text: 'Faskes Rujukan'),
+                                Tab(
+                                  icon: Icon(Icons.analytics, size: 16),
+                                  text: 'Statistik & Tren',
+                                ),
+                                Tab(
+                                  icon: Icon(Icons.table_chart, size: 16),
+                                  text: 'Data Kasus',
+                                ),
+                                Tab(
+                                  icon: Icon(Icons.local_hospital, size: 16),
+                                  text: 'Faskes Rujukan',
+                                ),
                               ],
                             ),
                           ),
@@ -164,11 +183,19 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
           children: [
             Row(
               children: [
-                const Icon(Icons.admin_panel_settings, color: Color(0xFF38BDF8), size: 18),
+                const Icon(
+                  Icons.admin_panel_settings,
+                  color: Color(0xFF38BDF8),
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   widget.currentUser.fullName,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -181,12 +208,23 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
         actions: [
           IconButton(
             tooltip: 'Penelitian Terdahulu',
-            icon: const Icon(Icons.menu_book, color: Color(0xFF38BDF8), size: 18),
-            onPressed: () => showDialog(context: context, builder: (ctx) => const ResearchReferenceModal()),
+            icon: const Icon(
+              Icons.menu_book,
+              color: Color(0xFF38BDF8),
+              size: 18,
+            ),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (ctx) => const ResearchReferenceModal(),
+            ),
           ),
           IconButton(
             tooltip: 'Simulasi Kasus (+)',
-            icon: const Icon(Icons.add_location_alt, color: Color(0xFF34D399), size: 20),
+            icon: const Icon(
+              Icons.add_location_alt,
+              color: Color(0xFF34D399),
+              size: 20,
+            ),
             onPressed: () => _openSimulationDialog(),
           ),
           IconButton(
@@ -197,15 +235,45 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
         ],
       ),
       body: SafeArea(
-        child: SizedBox.expand(
-          child: InteractiveGisMap(
-            kecamatanList: widget.kecamatanList,
-            faskesList: widget.faskesList,
-            selectedKecamatan: widget.selectedKecamatan,
-            onSelectKecamatan: widget.onSelectKecamatan,
-            onSelectFaskes: widget.onSelectFaskes,
-            isCompact: true,
-          ),
+        child: TabBarView(
+          controller: _mobileTabController,
+          children: [
+            InteractiveGisMap(
+              kecamatanList: widget.kecamatanList,
+              faskesList: widget.faskesList,
+              selectedKecamatan: widget.selectedKecamatan,
+              onSelectKecamatan: widget.onSelectKecamatan,
+              onSelectFaskes: widget.onSelectFaskes,
+              isCompact: true,
+            ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(14),
+              child: StatsAndCharts(
+                kecamatanList: widget.kecamatanList,
+                caseRecords: widget.caseRecords,
+                latestLog: widget.latestLog,
+                isCompact: true,
+              ),
+            ),
+            _buildCaseTableTab(),
+            _buildFaskesListTab(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Material(
+        color: const Color(0xFF0F172A),
+        child: TabBar(
+          controller: _mobileTabController,
+          indicatorColor: const Color(0xFF38BDF8),
+          labelColor: const Color(0xFF38BDF8),
+          unselectedLabelColor: Colors.grey.shade500,
+          labelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(icon: Icon(Icons.map, size: 19), text: 'Peta'),
+            Tab(icon: Icon(Icons.analytics, size: 19), text: 'Statistik'),
+            Tab(icon: Icon(Icons.table_chart, size: 19), text: 'Kasus'),
+            Tab(icon: Icon(Icons.local_hospital, size: 19), text: 'Faskes'),
+          ],
         ),
       ),
     );
@@ -227,7 +295,11 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFF0284C7)),
             ),
-            child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF38BDF8), size: 22),
+            child: const Icon(
+              Icons.admin_panel_settings_rounded,
+              color: Color(0xFF38BDF8),
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Column(
@@ -246,13 +318,26 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF38BDF8).withAlpha(40),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFF38BDF8), width: 0.8),
+                      border: Border.all(
+                        color: const Color(0xFF38BDF8),
+                        width: 0.8,
+                      ),
                     ),
-                    child: const Text('ADMIN / PENGELOLA DINKES', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 9.0, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'ADMIN / PENGELOLA DINKES',
+                      style: TextStyle(
+                        color: Color(0xFF38BDF8),
+                        fontSize: 9.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -269,11 +354,19 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
               foregroundColor: const Color(0xFF38BDF8),
               side: const BorderSide(color: Color(0xFF0284C7)),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            onPressed: () => showDialog(context: context, builder: (ctx) => const ResearchReferenceModal()),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (ctx) => const ResearchReferenceModal(),
+            ),
             icon: const Icon(Icons.menu_book, size: 15),
-            label: const Text('Penelitian Terdahulu', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            label: const Text(
+              'Penelitian Terdahulu',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 10),
           ElevatedButton.icon(
@@ -281,11 +374,16 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: _openSimulationDialog,
             icon: const Icon(Icons.add_location_alt, size: 16),
-            label: const Text('+ Input Kasus Simulasi', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            label: const Text(
+              '+ Input Kasus Simulasi',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 10),
           IconButton(
@@ -309,11 +407,19 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
             children: [
               Text(
                 'Data Kasus De-Identifikasi (${widget.caseRecords.length} Data)',
-                style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Text(
                 'Standar Privasi UU PDP',
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
           ),
@@ -322,7 +428,8 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: widget.caseRecords.length,
-            separatorBuilder: (ctx, i) => const Divider(color: Colors.blueGrey, height: 12),
+            separatorBuilder: (ctx, i) =>
+                const Divider(color: Colors.blueGrey, height: 12),
             itemBuilder: (context, index) {
               final item = widget.caseRecords[index];
               final kec = widget.kecamatanList.firstWhere(
@@ -341,7 +448,11 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                     ),
                     child: Text(
                       '#${index + 1}',
-                      style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -352,18 +463,70 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(item.kodeKasus, style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 11)),
-                            Text(item.status.label, style: TextStyle(color: _statusColor(item.status), fontSize: 10, fontWeight: FontWeight.w600)),
+                            Text(
+                              item.kodeKasus,
+                              style: const TextStyle(
+                                color: Color(0xFF38BDF8),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  item.status.label,
+                                  style: TextStyle(
+                                    color: _statusColor(item.status),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (item.patientId != null) ...[
+                                  const SizedBox(width: 6),
+                                  InkWell(
+                                    onTap: () =>
+                                        _showPatientDetail(item.patientId!),
+                                    child: const Icon(
+                                      Icons.visibility,
+                                      color: Color(0xFF38BDF8),
+                                      size: 14,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text('Kec. ${kec.nama} • Kel. ${item.kelurahan}', style: const TextStyle(color: Colors.white, fontSize: 10.5)),
+                        Text(
+                          'Kec. ${kec.nama} • Kel. ${item.kelurahan}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('Usia ${item.usia} th (${item.jenisKelamin}) • Tanggal: ${item.tanggalDiagnosis.day}/${item.tanggalDiagnosis.month}/${item.tanggalDiagnosis.year}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 9.5)),
+                        Text(
+                          'Usia ${item.usia} th (${item.jenisKelamin}) • Tanggal: ${item.tanggalDiagnosis.day}/${item.tanggalDiagnosis.month}/${item.tanggalDiagnosis.year}',
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 9.5,
+                          ),
+                        ),
                         if (item.catatan.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text(item.catatan, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 9.5, fontStyle: FontStyle.italic), maxLines: 2, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              item.catatan,
+                              style: const TextStyle(
+                                color: Color(0xFFCBD5E1),
+                                fontSize: 9.5,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                     ),
@@ -374,6 +537,62 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
           ),
         ),
       ],
+    );
+  }
+
+  void _showPatientDetail(String patientId) {
+    final matches = widget.patientList.where((p) => p.id == patientId);
+    final patient = matches.isEmpty ? null : matches.first;
+    if (patient == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        title: Text(
+          patient.namaLengkap,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _detailRow('Kode pasien', patient.kodePasien),
+              _detailRow('NIK', patient.nikMasked),
+              _detailRow(
+                'Usia / Jenis kelamin',
+                '${patient.usia} tahun / ${patient.jenisKelamin}',
+              ),
+              _detailRow('Domisili', 'Kel. ${patient.kelurahanNama}'),
+              _detailRow('Status terapi', patient.status.label),
+              _detailRow('Hasil pemeriksaan', patient.hasilBtaAwal),
+              _detailRow('Faskes', _facilityName(patient.facilityId)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _facilityName(String facilityId) {
+    for (final facility in widget.faskesList) {
+      if (facility.id == facilityId) return facility.nama;
+    }
+    return facilityId;
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(color: Colors.white70, fontSize: 11),
+      ),
     );
   }
 
@@ -394,17 +613,44 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
           ),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: isRS ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
-              child: Icon(isRS ? Icons.local_hospital : Icons.medical_services, color: Colors.white, size: 16),
+              backgroundColor: isRS
+                  ? const Color(0xFFEF4444)
+                  : const Color(0xFF0284C7),
+              child: Icon(
+                isRS ? Icons.local_hospital : Icons.medical_services,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
-            title: Text(f.nama, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
+            title: Text(
+              f.nama,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+              ),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 2),
-                Text(f.alamat, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10)),
+                Text(
+                  f.alamat,
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 10,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('Kontak: ${f.kontak} • Fasilitas: ${f.hasTCM ? "TCM GeneXpert Aktif" : "Mikroskopis BTA"}', style: TextStyle(color: f.hasTCM ? const Color(0xFF34D399) : Colors.grey.shade400, fontSize: 9.5)),
+                Text(
+                  'Kontak: ${f.kontak} • Fasilitas: ${f.hasTCM ? "TCM GeneXpert Aktif" : "Mikroskopis BTA"}',
+                  style: TextStyle(
+                    color: f.hasTCM
+                        ? const Color(0xFF34D399)
+                        : Colors.grey.shade400,
+                    fontSize: 9.5,
+                  ),
+                ),
               ],
             ),
           ),
