@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'models/tb_models.dart';
 import 'data/mock_data.dart';
-import 'views/mobile_view.dart';
-import 'views/web_view.dart';
+import 'views/login_view.dart';
+import 'views/admin_view.dart';
+import 'views/petugas_view.dart';
+import 'views/pasien_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,22 +30,27 @@ class TbMappingApp extends StatelessWidget {
         ),
         fontFamily: 'Segoe UI',
       ),
-      home: const MainMappingScreen(),
+      home: const MainRoutingScreen(),
     );
   }
 }
 
-class MainMappingScreen extends StatefulWidget {
-  const MainMappingScreen({super.key});
+class MainRoutingScreen extends StatefulWidget {
+  const MainRoutingScreen({super.key});
 
   @override
-  State<MainMappingScreen> createState() => _MainMappingScreenState();
+  State<MainRoutingScreen> createState() => _MainRoutingScreenState();
 }
 
-class _MainMappingScreenState extends State<MainMappingScreen> {
+class _MainRoutingScreenState extends State<MainRoutingScreen> {
+  UserAccount? _currentUser;
+
   late List<KecamatanData> _kecamatanList;
+  late List<KelurahanData> _kelurahanList;
   late List<FaskesData> _faskesList;
   late List<CaseRecord> _caseRecords;
+  late List<PatientProfile> _patientList;
+
   RealTimeUpdateLog? _latestLog;
   KecamatanData? _selectedKecamatan;
 
@@ -51,8 +58,36 @@ class _MainMappingScreenState extends State<MainMappingScreen> {
   void initState() {
     super.initState();
     _kecamatanList = MockDataRepository.getInitialKecamatanList();
+    _kelurahanList = MockDataRepository.getInitialKelurahanList();
     _faskesList = MockDataRepository.getInitialFaskesList();
     _caseRecords = MockDataRepository.getInitialCaseRecords();
+    _patientList = MockDataRepository.getInitialPatients();
+  }
+
+  void _handleLoginSuccess(UserAccount user) {
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  void _handleContinueAsGuest() {
+    setState(() {
+      _currentUser = UserAccount(
+        id: 'guest_user',
+        username: 'guest',
+        password: '',
+        fullName: 'Pengguna Publik (Tamu)',
+        role: UserRole.admin,
+        facilityName: 'Akses Data Agregat Terbuka',
+      );
+    });
+  }
+
+  void _handleLogout() {
+    setState(() {
+      _currentUser = null;
+      _selectedKecamatan = null;
+    });
   }
 
   void _handleSelectKecamatan(KecamatanData? kec) {
@@ -123,10 +158,54 @@ class _MainMappingScreenState extends State<MainMappingScreen> {
     setState(() {
       _caseRecords.insert(0, newCase);
 
+      // Sinkronisasi data agregat ke kecamatan
       final idx = _kecamatanList.indexWhere((k) => k.id == newCase.kecamatanId);
       if (idx != -1) {
         _kecamatanList[idx].jumlahKasus += 1;
       }
+
+      // Sinkronisasi data agregat ke kelurahan jika ada
+      final kelIdx = _kelurahanList.indexWhere((k) => k.nama.toLowerCase() == newCase.kelurahan.toLowerCase());
+      if (kelIdx != -1) {
+        _kelurahanList[kelIdx].jumlahKasus += 1;
+      }
+
+      // Tambahkan ke pasien mock jika didaftarkan
+      _patientList.insert(
+        0,
+        PatientProfile(
+          id: 'patient_${DateTime.now().millisecondsSinceEpoch}',
+          kodePasien: newCase.kodeKasus,
+          namaLengkap: 'Pasien ${newCase.kodeKasus}',
+          nikMasked: '187101******${1000 + _patientList.length}',
+          usia: newCase.usia,
+          jenisKelamin: newCase.jenisKelamin,
+          kecamatanId: newCase.kecamatanId,
+          kelurahanId: newCase.kelurahanId ?? 'kel_default',
+          kelurahanNama: newCase.kelurahan,
+          facilityId: newCase.faskesId,
+          status: newCase.status,
+          tanggalMulai: newCase.tanggalDiagnosis,
+          beratBadanKg: 52.0,
+          hasilBtaAwal: 'BTA Positif (+2)',
+          pmoNama: 'Keluarga Pasien',
+          pmoKontak: '0812-xxxx-xxxx',
+          medicationSchedules: [
+            MedicationSchedule(
+              id: 'med_${DateTime.now().millisecondsSinceEpoch}',
+              patientId: 'patient_${DateTime.now().millisecondsSinceEpoch}',
+              medicineName: 'Kombipak OAT Kategori 1 (4FDC)',
+              dosage: '4 Tablet',
+              instruction: 'Diminum pagi hari 1 jam sebelum makan.',
+              timeSlot: '06:30 WIB',
+              phase: 'Fase Intensif',
+              totalDays: 60,
+              currentDay: 1,
+              isTakenToday: false,
+            ),
+          ],
+        ),
+      );
 
       _latestLog = RealTimeUpdateLog(
         timestamp: DateTime.now(),
@@ -137,25 +216,45 @@ class _MainMappingScreenState extends State<MainMappingScreen> {
     });
   }
 
+  void _handleUpdatePatient(PatientProfile updated) {
+    setState(() {
+      final index = _patientList.indexWhere((p) => p.id == updated.id);
+      if (index != -1) {
+        _patientList[index] = updated;
+      }
+    });
+  }
+
+  void _handleConfirmMedication(MedicationSchedule schedule) {
+    setState(() {
+      // Sinkronisasi status kepatuhan pasien di memori
+      for (var p in _patientList) {
+        if (p.id == schedule.patientId) {
+          final sIndex = p.medicationSchedules.indexWhere((s) => s.id == schedule.id);
+          if (sIndex != -1) {
+            p.medicationSchedules[sIndex].isTakenToday = true;
+            p.medicationSchedules[sIndex].takenAt = DateTime.now();
+          }
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Breakpoint adaptif: jika lebar jendela < 900px gunakan layout mobile, jika >= 900px gunakan layout web
-        if (constraints.maxWidth < 900) {
-          return MobileView(
-            kecamatanList: _kecamatanList,
-            faskesList: _faskesList,
-            caseRecords: _caseRecords,
-            latestLog: _latestLog,
-            selectedKecamatan: _selectedKecamatan,
-            onSelectKecamatan: _handleSelectKecamatan,
-            onSelectFaskes: _handleSelectFaskes,
-            onAddCase: _handleAddNewCase,
-          );
-        }
+    // 1. Jika belum login dan bukan mode guest, tampilkan halaman Login
+    if (_currentUser == null) {
+      return LoginView(
+        onLoginSuccess: _handleLoginSuccess,
+        onContinueAsGuest: _handleContinueAsGuest,
+      );
+    }
 
-        return WebViewLayout(
+    // 2. Routing berdasarkan Role Pengguna
+    switch (_currentUser!.role) {
+      case UserRole.admin:
+        return AdminView(
+          currentUser: _currentUser!,
           kecamatanList: _kecamatanList,
           faskesList: _faskesList,
           caseRecords: _caseRecords,
@@ -164,8 +263,35 @@ class _MainMappingScreenState extends State<MainMappingScreen> {
           onSelectKecamatan: _handleSelectKecamatan,
           onSelectFaskes: _handleSelectFaskes,
           onAddCase: _handleAddNewCase,
+          onLogout: _handleLogout,
         );
-      },
-    );
+
+      case UserRole.petugas:
+        return PetugasView(
+          currentUser: _currentUser!,
+          kecamatanList: _kecamatanList,
+          kelurahanList: _kelurahanList,
+          faskesList: _faskesList,
+          caseRecords: _caseRecords,
+          patientList: _patientList,
+          onAddCase: _handleAddNewCase,
+          onUpdatePatient: _handleUpdatePatient,
+          onLogout: _handleLogout,
+        );
+
+      case UserRole.pasien:
+        // Cari profil spesifik milik pasien yang login
+        final myProfile = _patientList.firstWhere(
+          (p) => p.id == _currentUser!.patientId,
+          orElse: () => _patientList.first,
+        );
+
+        return PasienView(
+          currentUser: _currentUser!,
+          patientProfile: myProfile,
+          onConfirmMedication: _handleConfirmMedication,
+          onLogout: _handleLogout,
+        );
+    }
   }
 }
