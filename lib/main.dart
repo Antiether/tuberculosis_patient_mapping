@@ -105,14 +105,22 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
         title: Row(
           children: [
             Icon(
-              faskes.tipe.contains('Rumah Sakit') ? Icons.local_hospital : Icons.medical_services,
-              color: faskes.tipe.contains('Rumah Sakit') ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
+              faskes.tipe.contains('Rumah Sakit')
+                  ? Icons.local_hospital
+                  : Icons.medical_services,
+              color: faskes.tipe.contains('Rumah Sakit')
+                  ? const Color(0xFFEF4444)
+                  : const Color(0xFF0284C7),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 faskes.nama,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -126,9 +134,14 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
             _faskesInfoRow('Kontak:', faskes.kontak),
             _faskesInfoRow(
               'Alat TCM GeneXpert:',
-              faskes.hasTCM ? 'Tersedia & Siap Uji Cepat' : 'Tidak Tersedia (Rujukan ke Faskes TCM)',
+              faskes.hasTCM
+                  ? 'Tersedia & Siap Uji Cepat'
+                  : 'Tidak Tersedia (Rujukan ke Faskes TCM)',
             ),
-            _faskesInfoRow('Koordinat Spasial:', '${faskes.lat.toStringAsFixed(4)}, ${faskes.lng.toStringAsFixed(4)}'),
+            _faskesInfoRow(
+              'Koordinat Spasial:',
+              '${faskes.lat.toStringAsFixed(4)}, ${faskes.lng.toStringAsFixed(4)}',
+            ),
           ],
         ),
         actions: [
@@ -147,8 +160,18 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white60, fontSize: 10),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -165,7 +188,9 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
       }
 
       // Sinkronisasi data agregat ke kelurahan jika ada
-      final kelIdx = _kelurahanList.indexWhere((k) => k.nama.toLowerCase() == newCase.kelurahan.toLowerCase());
+      final kelIdx = _kelurahanList.indexWhere(
+        (k) => k.nama.toLowerCase() == newCase.kelurahan.toLowerCase(),
+      );
       if (kelIdx != -1) {
         _kelurahanList[kelIdx].jumlahKasus += 1;
       }
@@ -210,7 +235,8 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
       _latestLog = RealTimeUpdateLog(
         timestamp: DateTime.now(),
         aksi: 'Input Kasus Baru (${newCase.kodeKasus})',
-        detail: 'Kecamatan: ${_kecamatanList[idx].nama}, Kelurahan: ${newCase.kelurahan}',
+        detail:
+            'Kecamatan: ${_kecamatanList[idx].nama}, Kelurahan: ${newCase.kelurahan}',
         latensiMs: latensiMs,
       );
     });
@@ -230,7 +256,9 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
       // Sinkronisasi status kepatuhan pasien di memori
       for (var p in _patientList) {
         if (p.id == schedule.patientId) {
-          final sIndex = p.medicationSchedules.indexWhere((s) => s.id == schedule.id);
+          final sIndex = p.medicationSchedules.indexWhere(
+            (s) => s.id == schedule.id,
+          );
           if (sIndex != -1) {
             p.medicationSchedules[sIndex].isTakenToday = true;
             p.medicationSchedules[sIndex].takenAt = DateTime.now();
@@ -258,6 +286,7 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
           kecamatanList: _kecamatanList,
           faskesList: _faskesList,
           caseRecords: _caseRecords,
+          patientList: _patientList,
           latestLog: _latestLog,
           selectedKecamatan: _selectedKecamatan,
           onSelectKecamatan: _handleSelectKecamatan,
@@ -274,6 +303,9 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
           faskesList: _faskesList,
           caseRecords: _caseRecords,
           patientList: _patientList,
+          selectedKecamatan: _selectedKecamatan,
+          onSelectKecamatan: _handleSelectKecamatan,
+          onSelectFaskes: _handleSelectFaskes,
           onAddCase: _handleAddNewCase,
           onUpdatePatient: _handleUpdatePatient,
           onLogout: _handleLogout,
@@ -281,17 +313,50 @@ class _MainRoutingScreenState extends State<MainRoutingScreen> {
 
       case UserRole.pasien:
         // Cari profil spesifik milik pasien yang login
-        final myProfile = _patientList.firstWhere(
+        final matchingProfiles = _patientList.where(
           (p) => p.id == _currentUser!.patientId,
-          orElse: () => _patientList.first,
         );
+        if (matchingProfiles.isEmpty) {
+          return _AccessDeniedView(onLogout: _handleLogout);
+        }
 
         return PasienView(
           currentUser: _currentUser!,
-          patientProfile: myProfile,
+          patientProfile: matchingProfiles.first,
           onConfirmMedication: _handleConfirmMedication,
           onLogout: _handleLogout,
         );
     }
+  }
+}
+
+class _AccessDeniedView extends StatelessWidget {
+  final VoidCallback onLogout;
+
+  const _AccessDeniedView({required this.onLogout});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF090E1A),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline, color: Color(0xFFF87171), size: 48),
+            const SizedBox(height: 12),
+            const Text(
+              'Profil pasien tidak ditemukan.',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onLogout,
+              child: const Text('Kembali ke Login'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
